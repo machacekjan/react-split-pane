@@ -34,18 +34,37 @@ export default React.createClass({
     componentDidMount() {
         document.addEventListener('mouseup', this.onMouseUp);
         document.addEventListener('mousemove', this.onMouseMove);
+        window.addEventListener('resize', this.onResize);
         const ref = this.props.primary === 'first' ? this.refs.pane1 : this.refs.pane2;
-        if (ref && this.props.defaultSize !== undefined && !this.state.resized) {
+
+        if (ref && !this.state.resized) {
+            const node = ReactDOM.findDOMNode(ref);
+            let width = 0;
+            let height = 0;
+
+            if (node.getBoundingClientRect) {
+                width = node.getBoundingClientRect().width;
+                height = node.getBoundingClientRect().height;
+            }
+
+            const size = this.props.split === 'vertical' ? width : height;
+            this.paneSize = this.props.defaultSize || size;
+
             ref.setState({
-                size: this.props.defaultSize
+                size: this.paneSize
             });
         }
+
+        this.setState({
+            maxSize: this.updateSplitPaneMaxSize()
+        });
     },
 
 
     componentWillUnmount() {
         document.removeEventListener('mouseup', this.onMouseUp);
         document.removeEventListener('mousemove', this.onMouseMove);
+        window.removeEventListener('resize', this.onResize);
     },
 
 
@@ -66,35 +85,32 @@ export default React.createClass({
         if (this.state.active) {
             this.unFocus();
             const ref = this.props.primary === 'first' ? this.refs.pane1 : this.refs.pane2;
-            if (ref) {
-                const node = ReactDOM.findDOMNode(ref);
+            const size = this.paneSize;
+            const current = this.props.split === 'vertical' ? event.clientX : event.clientY;
+            const position = this.state.position;
+            const newPosition = this.props.primary === 'first' ? (position - current) : (current - position);
 
-                if (node.getBoundingClientRect) {
-                    const width = node.getBoundingClientRect().width;
-                    const height = node.getBoundingClientRect().height;
-                    const current = this.props.split === 'vertical' ? event.clientX : event.clientY;
-                    const size = this.props.split === 'vertical' ? width : height;
-                    const position = this.state.position;
-                    const newPosition = this.props.primary === 'first' ? (position - current) : (current - position);
+            let newSize =  size - newPosition;
 
-                    let newSize =  size - newPosition;
-                    this.setState({
-                        position: current,
-                        resized: true
-                    });
+            this.setState({
+                position: current,
+                resized: true
+            });
 
-                    if (newSize < this.props.minSize) {
-                        newSize = this.props.minSize;
-                    }
-                    
-                    if (this.props.onChange) {
-                      this.props.onChange(newSize);
-                    }
-                    ref.setState({
-                        size: newSize
-                    });
-                }
+            if (newSize < this.props.minSize) {
+                newSize = this.props.minSize;
+            } else if (newSize > this.state.maxSize) {
+                // TODO
+                // newSize = this.state.maxSize;
             }
+
+            if (this.props.onChange) {
+              this.props.onChange(newSize);
+            }
+            this.paneSize = newSize;
+            ref.setState({
+                size: newSize
+            });
         }
     },
 
@@ -110,6 +126,30 @@ export default React.createClass({
         }
     },
 
+
+    onResize() {
+        if ( this.resizeTimeout ) {
+            clearTimeout(this.resizeTimeout);
+        }
+        this.resizeTimeout = setTimeout(() => {
+            this.setState({ maxSize: this.updateSplitPaneMaxSize() });
+        }, 500);
+    },
+
+
+    updateSplitPaneMaxSize() {
+        const ref = this.refs.splitPane;
+        const node = ReactDOM.findDOMNode(ref);
+        let newMaxSize = null;
+
+        if (this.props.split === 'vertical') {
+            newMaxSize = node.getBoundingClientRect().width;
+        } else {
+            newMaxSize = node.getBoundingClientRect().height
+        }
+
+        return newMaxSize;
+    },
 
     unFocus() {
         if (document.selection) {
