@@ -50,10 +50,11 @@
   "scripts": {
     "compile": "babel -d lib/ src/",
     "compile:watch": "babel -w -d lib/ src/",
+    "coverage": "node cover.js text",
     "prepublish": "npm run compile",
     "test": "npm run compile && mochify -R spec",
     "test:watch": "npm run compile:watch & mochify -R spec --watch",
-    "test:coverage": "node cover.js && cat lcov.info | coveralls && rm lcov.info",
+    "test:coverage": "node cover.js lcovonly && cat lcov.info | coveralls && rm lcov.info",
     "demo": "npm run compile && browserify demo/Example.js -d -t -o demo/bundle.js",
     "demo:watch": "npm run compile:watch & watchify demo/Example.js -d -t -o demo/bundle.js",
     "demo:publish": "npm run compile && browserify demo/Example.js -d -t -o demo/bundle.js && surge demo react-split-pane.surge.sh",
