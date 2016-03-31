@@ -52,9 +52,12 @@ export default React.createClass({
       const ref = this.props.primary === 'first' ? this.refs.pane1 : this.refs.pane2;
       let newSize;
       if (ref) {
-        newSize = props.size || (state && state.draggedSize) || props.defaultSize || props.minSize;
+        newSize = props.size || (state && state.paneSize) || props.defaultSize || props.minSize;
           ref.setState({
               size: newSize
+          });
+          this.setState({
+              paneSize: newSize
           });
       }
     },
@@ -87,37 +90,31 @@ export default React.createClass({
             this.unFocus();
             const ref = this.props.primary === 'first' ? this.refs.pane1 : this.refs.pane2;
             if (ref) {
-                const node = ReactDOM.findDOMNode(ref);
+                const size = this.state.paneSize;
+                const position = this.state.position;
+                const current = this.props.split === 'vertical' ? event.clientX : event.clientY;
+                const newPosition = this.props.primary === 'first' ? (position - current) : (current - position);
 
-                if (node.getBoundingClientRect) {
-                    const width = node.getBoundingClientRect().width;
-                    const height = node.getBoundingClientRect().height;
-                    const current = this.props.split === 'vertical' ? event.clientX : event.clientY;
-                    const size = this.props.split === 'vertical' ? width : height;
-                    const position = this.state.position;
-                    const newPosition = this.props.primary === 'first' ? (position - current) : (current - position);
+                let newSize = size - newPosition;
 
-                    let newSize =  size - newPosition;
-
-                    if (newSize < this.props.minSize) {
-                      newSize = this.props.minSize;
-                    } else {
-                      this.setState({
-                          position: current,
-                          resized: true
-                      });                      
-                    }
-
-                    if (this.props.onChange) {
-                      this.props.onChange(newSize);
-                    }
-                    this.setState({
-                      draggedSize: newSize
-                    });
-                    ref.setState({
-                        size: newSize
-                    });
+                if (newSize < this.props.minSize) {
+                  newSize = this.props.minSize;
+                } else {
+                  this.setState({
+                      position: current,
+                      resized: true
+                  });
                 }
+
+                if (this.props.onChange) {
+                  this.props.onChange(newSize);
+                }
+                this.setState({
+                  paneSize: newSize
+                });
+                ref.setState({
+                    size: newSize
+                });
             }
         }
       }
